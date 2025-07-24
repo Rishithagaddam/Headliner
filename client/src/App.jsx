@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import ShowLatestNews from "./ShowLatestNews";
+import CategoryNewsFilter from "./CategoryNewsFilter";
 
 function formatTime(date) {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -120,8 +121,9 @@ function App() {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 animate-gradient-x" />
         <div className="absolute top-1/4 left-1/2 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl -translate-x-1/2 -z-10 animate-pulse" />
       </div>
-      <div className="relative min-h-screen flex items-center justify-center px-2 z-10">
-        <div className="w-full max-w-xl bg-white/70 dark:bg-gray-900/80 backdrop-blur-md rounded-3xl shadow-2xl p-4 sm:p-8 border border-white/40 dark:border-gray-700 transition-colors">
+      <div className="relative min-h-screen flex flex-col items-center justify-center px-2 z-10">
+        {/* Chat Card */}
+        <div className="w-full max-w-xl bg-white/70 dark:bg-gray-900/80 backdrop-blur-md rounded-3xl shadow-2xl p-4 sm:p-8 border border-white/40 dark:border-gray-700 transition-colors mt-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-3xl sm:text-4xl font-extrabold text-purple-700 dark:text-purple-300 drop-shadow-lg tracking-tight flex items-center gap-2">
@@ -245,18 +247,8 @@ function App() {
               </div>
             )}
           </div>
-          {/* Quick action */}
+          {/* Top 5 Headlines button and cards */}
           <ShowLatestNews />
-          <button
-            className="w-full mb-3 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl shadow transition disabled:bg-blue-300"
-            disabled={loading}
-            onClick={() => {
-              setInput("latest news");
-              setTimeout(() => document.querySelector("form").requestSubmit(), 0);
-            }}
-          >
-            Show Latest News
-          </button>
           <form onSubmit={sendMessage} className="flex gap-2">
             <input
               value={input}
@@ -280,6 +272,8 @@ function App() {
             Powered by Gemini API & NewsAPI &copy; {new Date().getFullYear()}
           </div>
         </div>
+        {/* Category News Filter below chat card */}
+        <CategoryNewsFilter />
       </div>
       {/* Custom animations */}
       <style>

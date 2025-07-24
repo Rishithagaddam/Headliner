@@ -35,7 +35,8 @@ app.get("/news", async (req, res) => {
 app.get("/api/news", async (req, res) => {
   try {
     const serpApiKey = "155466f395262b3847065b28ff8054cec70ed403ac046ef8d123ea0de57f8fe7";
-    const serpUrl = `https://serpapi.com/search.json?q=top news india&tbm=nws&location=India&api_key=${serpApiKey}`;
+    const query = req.query.q || "top news india";
+    const serpUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&tbm=nws&location=India&api_key=${serpApiKey}`;
     const serpRes = await axios.get(serpUrl);
     const news = serpRes.data.news_results || [];
     const top5 = news.slice(0, 5).map(item => ({
