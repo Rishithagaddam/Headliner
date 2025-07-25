@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { summarizeNewsContent, generateFollowUpQuestions } from '../../services/geminiService';
 import axios from 'axios';
 
 export default function NewsCard({ article, delay }) {
   const [showSummary, setShowSummary] = useState(false);
   const [summary, setSummary] = useState('');
+  const [followUpQuestions, setFollowUpQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const fetchSummary = async () => {
@@ -15,15 +17,29 @@ export default function NewsCard({ article, delay }) {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:5000/generate-summary', {
-        headline: article.title,
-        description: article.description || article.title
-      });
-      setSummary(response.data.summary);
+      // Use the new Gemini service for better summarization
+      const content = article.description || article.title;
+      const geminiSummary = await summarizeNewsContent(content);
+      setSummary(geminiSummary);
+      
+      // Generate follow-up questions
+      const questions = await generateFollowUpQuestions(article.title, geminiSummary);
+      setFollowUpQuestions(questions);
+      
       setShowSummary(true);
     } catch (err) {
       console.error('Error fetching summary:', err);
-      setSummary('Failed to generate summary');
+      // Fallback to server endpoint
+      try {
+        const response = await axios.post('http://localhost:5000/generate-summary', {
+          headline: article.title,
+          description: article.description || article.title
+        });
+        setSummary(response.data.summary);
+        setShowSummary(true);
+      } catch (serverErr) {
+        setSummary('Failed to generate summary');
+      }
     } finally {
       setLoading(false);
     }
@@ -77,9 +93,23 @@ export default function NewsCard({ article, delay }) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="text-sm text-gray-600 dark:text-gray-300 bg-purple-50 dark:bg-purple-900/30 rounded-lg p-3"
+            className="space-y-3"
           >
-            {summary}
+            <div className="text-sm text-gray-600 dark:text-gray-300 bg-purple-50 dark:bg-purple-900/30 rounded-lg p-3">
+              <strong className="text-purple-700 dark:text-purple-300">Summary:</strong>
+              <br />
+              {summary}
+            </div>
+            
+            {/* Follow-up Questions */}
+            {followUpQuestions.length > 0 && (
+              <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                <div className="font-medium text-purple-600 dark:text-purple-400">💡 Ask about:</div>
+                {followUpQuestions.map((question, idx) => (
+                  <div key={idx} className="ml-2">• {question}</div>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
       </div>

@@ -53,9 +53,55 @@ app.get("/api/news", async (req, res) => {
 
 // Gemini Chatbot endpoint
 app.post("/chat", async (req, res) => {
-  const { message } = req.body;
+  const { message, intent } = req.body;
 
-  // 1. Check for news-related queries
+  // Enhanced processing using intent data from frontend
+  if (intent && intent.intent === 'news_query') {
+    try {
+      // Use SerpAPI for news with enhanced query based on intent
+      const serpApiKey = "155466f395262b3847065b28ff8054cec70ed403ac046ef8d123ea0de57f8fe7";
+      let searchQuery = message;
+      
+      // Enhance query based on detected intent
+      if (intent.category && intent.category !== 'general') {
+        searchQuery = `${intent.category} news ${intent.keywords.join(' ')}`;
+      }
+      if (intent.location && intent.location !== 'global') {
+        searchQuery += ` ${intent.location}`;
+      }
+      
+      const serpUrl = `https://serpapi.com/search.json?q=${encodeURIComponent(searchQuery)}&api_key=${serpApiKey}`;
+      const serpRes = await axios.get(serpUrl);
+      const data = serpRes.data;
+
+      // Try to extract news from SerpAPI response
+      let answer = null;
+      if (data.answer_box && data.answer_box.answer) {
+        answer = data.answer_box.answer;
+      } else if (data.answer_box && data.answer_box.snippet) {
+        answer = data.answer_box.snippet;
+      } else if (data.news_results && data.news_results.length > 0) {
+        // Format top 5 news headlines
+        answer = data.news_results
+          .slice(0, 5)
+          .map((n, i) => `${i + 1}. ${n.title} (${n.link})`)
+          .join("\n");
+      } else if (data.organic_results && data.organic_results.length > 0) {
+        answer = data.organic_results[0].snippet || data.organic_results[0].title;
+      }
+
+      if (answer) {
+        return res.json({ reply: answer });
+      } else {
+        return res.json({ reply: "Sorry, I couldn't find any news right now." });
+      }
+    } catch (err) {
+      console.error("SerpAPI error:", err.response?.data || err.message);
+      return res.status(500).json({ reply: "Error fetching news from SerpAPI" });
+    }
+  }
+
+  // 1. Check for news-related queries (fallback)
   if (/news/i.test(message)) {
     try {
       // Use SerpAPI for news

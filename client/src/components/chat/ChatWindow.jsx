@@ -13,7 +13,10 @@ export default function ChatWindow({
   userTyping,
   clearChat,
   copyToClipboard,
-  reactToMessage 
+  reactToMessage,
+  speechMode,
+  listening,
+  handleVoiceInput
 }) {
   const chatRef = useRef(null);
 
@@ -85,9 +88,26 @@ export default function ChatWindow({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
+            placeholder={speechMode ? "Tap mic to speak or type..." : "Type your message..."}
             className="flex-1 p-2 border dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700"
           />
+          
+          {/* Voice Input Button (shown in speech mode) */}
+          {speechMode && handleVoiceInput && (
+            <button
+              type="button"
+              onClick={handleVoiceInput}
+              disabled={listening}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                listening 
+                  ? 'bg-red-500 text-white animate-pulse' 
+                  : 'bg-purple-100 hover:bg-purple-200 text-purple-600'
+              }`}
+            >
+              {listening ? '🎤' : '🎙️'}
+            </button>
+          )}
+          
           <button
             type="submit"
             disabled={!input.trim()}
@@ -105,6 +125,9 @@ export default function ChatWindow({
         </div>
         {userTyping && (
           <div className="text-xs text-gray-500 mt-1">User is typing...</div>
+        )}
+        {listening && (
+          <div className="text-xs text-purple-600 mt-1 animate-pulse">🎤 Listening for voice input...</div>
         )}
       </form>
     </div>

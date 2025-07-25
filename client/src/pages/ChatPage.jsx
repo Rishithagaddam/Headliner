@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import ChatWindow from '../components/chat/ChatWindow';
 import ShowLatestNews from '../components/news/ShowLatestNews';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSpeechMode } from '../context/SpeechModeContext';
+import { startListening, speak, detectIntent } from '../services/speechService';
 import axios from 'axios';
 
 export default function ChatPage() {
@@ -17,6 +19,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [userTyping, setUserTyping] = useState(false);
   const [showNews, setShowNews] = useState(false);
+  const { speechMode, listening, setListening, speaking, setSpeaking } = useSpeechMode();
 
   // Quick prompts data
   const quickPrompts = [
@@ -41,18 +44,44 @@ export default function ChatPage() {
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
+    
     const now = new Date();
     const userMsg = { from: "user", text: input, time: now, reactions: { up: 0, down: 0 } };
     setMessages((msgs) => [...msgs, userMsg]);
     setLoading(true);
     setUserTyping(false);
+    
     try {
-      const res = await axios.post("http://localhost:5000/chat", { message: input });
-      setMessages((msgs) => [
-        ...msgs,
-        { from: "bot", text: res.data.reply, time: new Date(), reactions: { up: 0, down: 0 } }
-      ]);
-    } catch {
+      // Use Gemini API for intent detection to enhance the query
+      const intent = await detectIntent(input);
+      
+      // Send the enhanced message to the backend
+      const res = await axios.post("http://localhost:5000/chat", { 
+        message: input,
+        intent: intent // Pass intent data to backend for better processing
+      });
+      
+      const botResponse = { 
+        from: "bot", 
+        text: res.data.reply, 
+        time: new Date(), 
+        reactions: { up: 0, down: 0 } 
+      };
+      
+      setMessages((msgs) => [...msgs, botResponse]);
+      
+      // If speech mode is enabled, speak the response
+      if (speechMode) {
+        setSpeaking(true);
+        try {
+          await speak(res.data.reply);
+        } catch (err) {
+          console.error('Speech synthesis failed:', err);
+        } finally {
+          setSpeaking(false);
+        }
+      }
+    } catch (err) {
       setMessages((msgs) => [
         ...msgs,
         { from: "bot", text: "Error contacting Gemini API.", time: new Date(), reactions: { up: 0, down: 0 } }
@@ -138,6 +167,35 @@ export default function ChatPage() {
     setLoading(false);
   };
 
+  // Voice input handler using enhanced Gemini-powered speech recognition
+  const handleVoiceInput = () => {
+    if (listening) return;
+    
+    setListening(true);
+    startListening(
+      async (recognizedText) => {
+        setListening(false);
+        setInput(recognizedText);
+        
+        // Auto-send if in speech mode
+        if (speechMode) {
+          // Create a fake event to trigger sendMessage
+          const fakeEvent = { preventDefault: () => {} };
+          setInput(recognizedText);
+          // Use setTimeout to ensure state is updated
+          setTimeout(() => {
+            sendMessage(fakeEvent);
+          }, 100);
+        }
+      },
+      (error) => {
+        setListening(false);
+        console.error('Speech recognition error:', error);
+        // You could show an error message to the user here
+      }
+    );
+  };
+
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-purple-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900">
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -187,6 +245,9 @@ export default function ChatPage() {
             clearChat={clearChat}
             copyToClipboard={copyToClipboard}
             reactToMessage={reactToMessage}
+            speechMode={speechMode}
+            listening={listening}
+            handleVoiceInput={handleVoiceInput}
           />
 
           {/* Collapsible News Section */}
