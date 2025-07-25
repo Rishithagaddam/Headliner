@@ -51,13 +51,16 @@ export default function ShowLatestNews() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className="bg-white/90 dark:bg-gray-800/90 rounded-lg p-3 shadow hover:shadow-md transition"
+            className="bg-white/90 dark:bg-gray-800/90 rounded-lg p-3 shadow 
+                     hover:shadow-md transition-all group"
           >
             <a
               href={item.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium text-purple-600 dark:text-purple-300 hover:text-purple-700 dark:hover:text-purple-200"
+              className="text-sm font-medium text-purple-600 dark:text-purple-300 
+                       hover:text-purple-700 dark:hover:text-purple-200 
+                       cursor-pointer block transition-colors"
             >
               {item.title}
             </a>
