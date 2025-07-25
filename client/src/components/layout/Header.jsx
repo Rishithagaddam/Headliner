@@ -8,7 +8,8 @@ export default function Header({ dark, setDark }) {
   const links = [
     { to: "/", label: "Home" },
     { to: "/chat", label: "Chat" },
-    { to: "/category", label: "Categories" }
+    { to: "/category", label: "Categories" },
+    { to: "/podcast", label: "Podcast" }
   ];
 
   return (

@@ -5,6 +5,7 @@ import Footer from './components/layout/Footer';
 import HomePage from './pages/HomePage';
 import ChatPage from './pages/ChatPage';
 import CategoryPage from './pages/CategoryPage';
+import PodcastPage from './pages/PodcastPage';
 import { FiltersProvider } from './context/FiltersContext';
 import { SpeechModeProvider } from './context/SpeechModeContext';
 
@@ -22,6 +23,7 @@ export default function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/category" element={<CategoryPage />} />
+              <Route path="/podcast" element={<PodcastPage />} />
             </Routes>
 
             <Footer />

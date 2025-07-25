@@ -46,6 +46,14 @@ export default function HomePage() {
           </Link>
           
           <Link 
+            to="/podcast"
+            className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-200 flex items-center justify-center gap-2"
+          >
+            <span>Generate Podcast</span>
+            <span className="text-xl">🎙️</span>
+          </Link>
+          
+          <Link 
             to="/category"
             className="px-8 py-4 bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-300 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition duration-200 flex items-center justify-center gap-2"
           >
@@ -57,12 +65,17 @@ export default function HomePage() {
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-16 max-w-6xl mx-auto">
           {[
             {
               icon: "🤖",
               title: "AI-Powered Chat",
               description: "Engage with our intelligent assistant for in-depth news discussions"
+            },
+            {
+              icon: "🎙️",
+              title: "AI News Podcasts",
+              description: "Generate personalized audio briefings with realistic AI voices"
             },
             {
               icon: "📰",
