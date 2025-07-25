@@ -11,14 +11,34 @@ const CATEGORY_OPTIONS = [
   { label: "Science", value: "science" },
 ];
 
+// Replace the dummy getSummary function with this real one
+async function getSummary(headline, description) {
+  try {
+    const response = await axios.post('http://localhost:5000/generate-summary', {
+      headline,
+      description
+    });
+    return response.data.summary;
+  } catch (error) {
+    console.error('Error getting summary:', error);
+    return 'Unable to generate summary';
+  }
+}
+
 export default function CategoryNewsFilter() {
   const [category, setCategory] = useState("");
   const [headlines, setHeadlines] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [summaries, setSummaries] = useState({});
+  const [openSummary, setOpenSummary] = useState({}); // {idx: true/false}
+  const [summaryLoading, setSummaryLoading] = useState({}); // {idx: true/false}
 
   const fetchCategoryNews = async (cat) => {
     setLoading(true);
     setHeadlines([]);
+    setSummaries({});
+    setOpenSummary({});
+    setSummaryLoading({});
     try {
       const query =
         cat === "general"
@@ -39,6 +59,47 @@ export default function CategoryNewsFilter() {
     setCategory(cat);
     if (cat) fetchCategoryNews(cat);
     else setHeadlines([]);
+  };
+
+  const handleSummaryToggle = async (idx, headline) => {
+    setOpenSummary((prev) => ({
+      ...prev,
+      [idx]: !prev[idx],
+    }));
+
+    // If summary exists or is being hidden, return
+    if (summaries[idx] || openSummary[idx]) return;
+
+    setSummaryLoading((prev) => ({ ...prev, [idx]: true }));
+
+    try {
+      // Extract a brief description from the headline
+      const description = headline
+        .split(':')
+        .slice(1)
+        .join(':')
+        .trim();
+
+      const summary = await getSummary(headline, description);
+      
+      // Validate summary quality
+      const isValidSummary = summary && 
+        summary !== "No summary available" && 
+        summary.length > 10;
+
+      setSummaries((prev) => ({
+        ...prev,
+        [idx]: isValidSummary ? summary : `Key point: ${description || headline}`
+      }));
+    } catch (error) {
+      console.error('Summary generation failed:', error);
+      setSummaries((prev) => ({
+        ...prev,
+        [idx]: `Key point: ${headline.split(':').pop().trim()}`
+      }));
+    }
+
+    setSummaryLoading((prev) => ({ ...prev, [idx]: false }));
   };
 
   return (
@@ -72,10 +133,30 @@ export default function CategoryNewsFilter() {
                     href={item.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-indigo-700 dark:text-indigo-300 font-semibold hover:underline"
+                    className="text-indigo-700 dark:text-indigo-300 font-semibold hover:underline block"
                   >
                     {item.title}
                   </a>
+                  <button
+                    className="mt-3 mb-1 px-3 py-1 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-200 rounded transition text-xs font-medium"
+                    onClick={() => handleSummaryToggle(idx, item.title)}
+                  >
+                    {openSummary[idx] ? "Hide Summary" : "Smart Summary"}
+                  </button>
+                  {/* Accordion summary */}
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ${
+                      openSummary[idx] ? "max-h-40 opacity-100 mt-2" : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    {summaryLoading[idx] ? (
+                      <div className="text-xs text-indigo-400 py-2">Summarizing...</div>
+                    ) : summaries[idx] ? (
+                      <div className="text-sm text-gray-700 dark:text-gray-200 bg-indigo-50 dark:bg-indigo-950 rounded p-3 mt-1">
+                        {summaries[idx]}
+                      </div>
+                    ) : null}
+                  </div>
                 </li>
               ))}
               {!loading && headlines.length === 0 && (

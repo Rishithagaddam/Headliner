@@ -2,6 +2,7 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
+const { generateMeaningfulSummary } = require("./summarization");
 
 const app = express();
 app.use(cors());
@@ -93,7 +94,7 @@ app.post("/chat", async (req, res) => {
   // 2. Fallback to Gemini for all other queries
   try {
     const geminiRes = await axios.post(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyBqeCViFRSdxhrY4E5ZiVtwWMtmq-PgNEI",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyAxtOF7oTK9nTU4TCZHsvEAcdMdUuYehPU",
       {
         contents: [{ parts: [{ text: message }] }]
       }
@@ -103,6 +104,79 @@ app.post("/chat", async (req, res) => {
   } catch (err) {
     console.error(err.response?.data || err.message);
     res.status(500).json({ reply: "Error contacting Gemini API" });
+  }
+});
+
+/**
+ * Summarize news headlines using the Gemini API.
+ * @param {Array} articles - Array of news articles, each with a headline and description.
+ * @returns {Promise<Array>} - Array of articles with AI-generated summaries.
+ */
+async function summarizeHeadlines(articles) {
+  const geminiApiKey = "AIzaSyAxtOF7oTK9nTU4TCZHsvEAcdMdUuYehPU"; // Updated API key
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+
+  const summarizedArticles = await Promise.all(
+    articles.map(async (article) => {
+      const { title: headline, description } = article;
+      const prompt = `
+        You are an AI assistant helping a news chatbot summarize headlines for quick reading. 
+        Given a news headline and its short description or snippet, generate a concise one-line summary that captures the key point or takeaway. 
+        Keep it factual, avoid opinions, and limit the summary to under 20 words.
+        Format your response as:
+        Summary: <one-line summary>
+        Headline: '${headline}'
+        Description: '${description || "No description available"}'
+      `;
+
+      try {
+        const response = await axios.post(geminiUrl, {
+          contents: [{ parts: [{ text: prompt }] }],
+        });
+
+        const summary =
+          response.data.candidates?.[0]?.content?.parts?.[0]?.text || "No summary available";
+        return { ...article, summary };
+      } catch (err) {
+        console.error("Error summarizing headline:", err.response?.data || err.message);
+        return { ...article, summary: "Error generating summary" };
+      }
+    })
+  );
+
+  return summarizedArticles;
+}
+
+// Example usage in an endpoint
+app.post("/summarize-news", async (req, res) => {
+  const { articles } = req.body;
+
+  if (!Array.isArray(articles)) {
+    return res.status(400).json({ error: "Invalid input. Expected an array of articles." });
+  }
+
+  try {
+    const summarizedArticles = await summarizeHeadlines(articles);
+    res.json(summarizedArticles);
+  } catch (err) {
+    console.error("Error summarizing news:", err.message);
+    res.status(500).json({ error: "Failed to summarize news articles." });
+  }
+});
+
+app.post("/generate-summary", async (req, res) => {
+  const { headline, description } = req.body;
+
+  if (!headline) {
+    return res.status(400).json({ error: "Headline is required." });
+  }
+
+  try {
+    const summary = await generateMeaningfulSummary(headline, description);
+    res.json({ summary });
+  } catch (err) {
+    console.error("Error generating summary:", err.message);
+    res.status(500).json({ error: "Failed to generate summary." });
   }
 });
 
